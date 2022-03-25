@@ -28,7 +28,9 @@ Lets rewrite the world in rust
 <p>Build a project</p>
 <code>
   cargo build
+  
   // Run optimizations
+
   cargo build --release
 </code>
 
