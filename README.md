@@ -1,8 +1,12 @@
 # rust-sudoku-api
 Lets rewrite the world in rust
 
-Run "rustup doc" to open the local documentation in your browser.
+<p>Run "rustup doc" to open the local documentation in your browser.</p>
 
-Run "rustc" to compile simple programs to .exe
+<p>Run "rustc" to compile simple programs to .exe</p>
 
-Cargo new created a new project scaffold
+<p>Run "cargo new" to create a new project scaffold</p>
+
+<code>Run "cargo run" to run the project</code>
+
+<quote>"This file is in the TOML (Tom’s Obvious, Minimal Language) format, which is Cargo’s configuration format."</quote>
