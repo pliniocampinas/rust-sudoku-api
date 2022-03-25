@@ -28,6 +28,8 @@ Lets rewrite the world in rust
 <p>Build a project</p>
 <code>
   cargo build
+</code>
+<code>
   cargo build --release
 </code>
 
