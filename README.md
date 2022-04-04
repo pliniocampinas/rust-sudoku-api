@@ -6,5 +6,5 @@
 </p>
 
 <p>
-  Sudoku Crate used for this API: <a>https://docs.rs/sudoku/latest/sudoku/</a>
+    Sudoku Crate used for this API: https://docs.rs/sudoku/latest/sudoku/
 </p>
