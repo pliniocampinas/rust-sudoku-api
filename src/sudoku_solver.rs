@@ -10,14 +10,9 @@ pub async fn handle(sudoku_line: web::Path<String>) -> impl Responder {
 
     let sudoku_solver = Sudoku::from_str_line(sudoku_line.into_inner().as_str()).unwrap();
 
-    // Solve, print or convert the sudoku to another format
     if let Some(solution) = sudoku_solver.solve_unique() {
-        // print the solution in line format
-        // println!("{}", solution);
-
-        // or return it as a byte array
-        // let cell_contents: [u8; 81] = solution.to_bytes();
         return format!("{solution}");
     }
+    
     format!("Unsolved!")
 }
