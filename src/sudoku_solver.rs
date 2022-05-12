@@ -1,5 +1,6 @@
 use actix_web::{get, web, Responder};
 use sudoku::Sudoku;
+use std::char;
 
 // Sudokus can be created from &str's in both block or line formats or directly from bytes.
 // here, an example in line format
@@ -10,48 +11,49 @@ struct SudokuBoard {
 }
 
 impl SudokuBoard {
-    // This is an "associated function" because this function is associated with
-    // a particular type, that is, Point.
-    //
-    // Associated functions don't need to be called with an instance.
-    // These functions are generally used like constructors.
-    fn getCell(&self, x: usize, y: usize) -> char {
+    fn get_cell(&self, x: usize, y: usize) -> char {
         let index = x + y*9;
         return self.sudoku_line[index];
     }
 
-    // Another associated function, taking two arguments:
-    // fn new(x: f64, y: f64) -> Point {
-    //     Point { x: x, y: y }
-    // }
-}
+    fn set_cell(&mut self, x: usize, y: usize, value: char) {
+        let index = x + y*9;
+        self.sudoku_line[index] = value;
+    }
 
-// TODO
-fn init_board(sudoku_board: &SudokuBoard, sudoku_line: String) {
-    let mut split = sudoku_line.split("");
-    for s in split {
-        println!("{}", s)
+    fn new(sudoku_line: String) -> SudokuBoard {
+        let mut new_board = SudokuBoard {
+            sudoku_line: ['.'; 81]
+        };
+
+        let mut index = 0;
+        let char_vec: Vec<char> = sudoku_line.chars().collect();
+        for c in char_vec {
+            println!("{}", c);
+            index = index + 1;
+            new_board.sudoku_line[index] = c;
+        }
+        return new_board;
     }
 }
 
 fn is_a_possible_move(sudoku_board: &SudokuBoard, x: usize, y: usize, value: char) -> bool {
     // Test for lines and column matches
-    for i in 0..81 {
-        if sudoku_board.getCell(i, y) == value {
+    for i in 0..9 {
+        if sudoku_board.get_cell(i, y) == value {
             return false
         }
-        if sudoku_board.getCell(x, i) == value {
+        if sudoku_board.get_cell(x, i) == value {
             return false
         }
     }
-
 
     // Test 3x3 squares
     let x0 = (x/3) * 3;
     let y0 = (y/3) * 3;
     for i in 0..3 {
         for j in 0..3 {
-            if sudoku_board.getCell(x0+j, y0+i) == value {
+            if sudoku_board.get_cell(x0+j, y0+i) == value {
                 return false
             }
         }
@@ -60,10 +62,29 @@ fn is_a_possible_move(sudoku_board: &SudokuBoard, x: usize, y: usize, value: cha
     true
 }
 
-// TODO
-fn solve_unique(sudoku_board: &SudokuBoard) -> Option<String> {
-    None
-}
+// fn solve_unique(sudoku_board: &SudokuBoard) -> Option<String> {
+//     for x in 0..9 {
+//         for y in 0..9 {
+//             if sudoku_board.get_cell(x, y) == '.' {
+
+//                 for n in 1..10 {
+//                     let nChar = char::from_digit(n, 10).unwrap();
+
+//                     if is_a_possible_move(sudoku_board, x, y, nChar) {
+//                         sudoku_board.set_cell(x, y, nChar);
+//                         if let Some(solution) = solve_unique(sudoku_board) {
+//                             return Some(solution);
+//                         }
+//                         sudoku_board.set_cell(x, y, '.');
+//                     }
+//                 }
+//                 return None
+//             }
+//         }
+//     }
+
+//     None
+// }
 
 fn solve(sudoku_line: String) -> Option<String> {
     if sudoku_line.len() != 81 {
