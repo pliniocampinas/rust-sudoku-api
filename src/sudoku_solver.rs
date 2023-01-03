@@ -1,94 +1,67 @@
 use actix_web::{get, web, Responder};
 use sudoku::Sudoku;
-use std::char;
 
-// Sudokus can be created from &str's in both block or line formats or directly from bytes.
-// here, an example in line format
-// let sudoku_line = "...2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
-
-struct SudokuBoardIter {
-    sudoku_line: [char; 81]
-}
-
-impl SudokuBoardIter {
-    fn get_cell(&self, x: usize, y: usize) -> char {
-        let index = x + y*9;
-        return self.sudoku_line[index];
-    }
-
-    fn set_cell(&mut self, x: usize, y: usize, value: char) {
-        let index = x + y*9;
-        self.sudoku_line[index] = value;
-    }
-
-    fn is_not_full(&self) -> bool {
-        self.as_str().contains(".")
-    }
-
-    fn is_cell_empty(&self, x: usize, y: usize) -> bool {
-        let index = x + y*9;
-        return self.sudoku_line[index] == '.';
-    }
-
-    fn as_str(&self) -> String {
-        let mut self_str = String::from("");
-
-        for _ in 0..81 {
-            self_str = self_str + ".";
+fn str_to_board_mut(s: &str, board: &mut [[u8; 9]; 9]) {
+    let chars: Vec<char> = s
+        .chars()
+        .filter_map(|c| {
+            if c == '.' {
+                Some('0')
+            } else {
+                Some(c)
+            }
+        })
+        .collect();
+    for (i, chunk) in chars.chunks(9).enumerate() {
+        for (j, c) in chunk.iter().enumerate() {
+            board[i][j] = c.to_digit(10).unwrap() as u8;
         }
-
-        self_str
-    }
-
-    fn new(sudoku_line: String) -> SudokuBoardIter {
-        let mut new_board = SudokuBoardIter {
-            sudoku_line: ['.'; 81]
-        };
-
-        let mut index = 0;
-        let char_vec: Vec<char> = sudoku_line.chars().collect();
-        for c in char_vec {
-            println!("{}", c);
-            index = index + 1;
-            new_board.sudoku_line[index] = c;
-        }
-        return new_board;
     }
 }
 
-fn new_board(sudoku_line: String) -> SudokuBoardIter {
-    let mut new_board = SudokuBoardIter {
-        sudoku_line: ['.'; 81]
-    };
-
-    let mut index = 0;
-    let char_vec: Vec<char> = sudoku_line.chars().collect();
-    for c in char_vec {
-        println!("{}", c);
-        index = index + 1;
-        new_board.sudoku_line[index] = c;
-    }
-    return new_board;
-}
-
-fn is_a_valid_move(sudoku_board: &SudokuBoardIter, x: usize, y: usize, value: char) -> bool {
-    // Test for lines and column matches
+fn solve_sudoku(grid: &mut [[u8; 9]; 9]) -> bool {
     for i in 0..9 {
-        if sudoku_board.get_cell(i, y) == value {
-            return false
+        for j in 0..9 {
+            if grid[i][j] == 0 {
+                for k in 1..10 {
+                    if is_valid(grid, i, j, k) {
+                        grid[i][j] = k;
+                        if solve_sudoku(grid) {
+                            return true;
+                        } else {
+                            grid[i][j] = 0;
+                        }
+                    }
+                }
+                return false;
+            }
         }
-        if sudoku_board.get_cell(x, i) == value {
-            return false
+    }
+    true
+}
+
+fn is_valid(grid: &[[u8; 9]; 9], row: usize, col: usize, k: u8) -> bool {
+    // check if k is valid in the row
+    for j in 0..9 {
+        if grid[row][j] == k {
+            return false;
         }
     }
 
-    // Test 3x3 squares
-    let x0 = (x/3) * 3;
-    let y0 = (y/3) * 3;
+    // check if k is valid in the column
+    for i in 0..9 {
+        if grid[i][col] == k {
+            return false;
+        }
+    }
+
+    // check if k is valid in the subgrid
+    let subgrid_row = (row / 3) * 3;
+    let subgrid_col = (col / 3) * 3;
     for i in 0..3 {
         for j in 0..3 {
-            if sudoku_board.get_cell(x0+j, y0+i) == value {
-                return false
+            if grid[subgrid_row + i][subgrid_col + j] == k {
+                return false;
             }
         }
     }
@@ -96,67 +69,14 @@ fn is_a_valid_move(sudoku_board: &SudokuBoardIter, x: usize, y: usize, value: ch
     true
 }
 
-fn solve_unique_iter(sudoku_board: &mut SudokuBoardIter) -> Option<String> {
-    let mut cursor_stack = Vec::new();
-    // Stack: x, y, n, last_n
-    cursor_stack.push((0,0,0,0));
-
-
-    while sudoku_board.is_not_full() {
-        // Check the board from left to right and top to bottom
-        let mut x = 0;
-        while x < 9 {
-            let mut y = 0;
-            while y < 9 {
-                if sudoku_board.is_cell_empty(x, y) {
-                    let mut found_valid_n = false;
-
-                    // Check numbers between 1 and 9
-                    let mut n = 1;
-                    while n <= 9 {
-                        let last = cursor_stack.last_mut().unwrap();
-
-                        // If last attempt was 9, break and pop solution
-                        if last.3 >= 9 {
-                            break;
-                        }
-                        // If next move was tried before, jump forward
-                        if n <= last.3 {
-                            n = last.3 + 1;
-                        }
-
-                        let n_char = char::from_digit(n, 10).unwrap();
-                        if is_a_valid_move(sudoku_board, x, y, n_char) {
-                            // Set last_n for backtracking
-                            last.3 = n;
-                            found_valid_n = true;
-                            sudoku_board.set_cell(x, y, n_char);
-                            cursor_stack.push((x, y, n, 0));
-                            break;
-                        }
-                        n = n + 1;
-                    }
-
-                    if found_valid_n == false {
-                        cursor_stack.pop();
-                    }
-                }
-                y = y + 1;
-            }
-            x = x + 1;
-        }
-    }
-
-    None
-}
+// Sudokus can be created from &str's in both block or line formats or directly from bytes.
+// here, an example in line format
+// let sudoku_line = "...2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
 
 fn solve(sudoku_line: String) -> Option<String> {
     if sudoku_line.len() != 81 {
         return None;
     }
-
-    // let mut sudoku_board = new_board(sudoku_line.clone());
-    // solve_unique_iter(sudoku_board);
 
     let sudoku_solver = Sudoku::from_str_line(sudoku_line.as_str()).unwrap();
 
@@ -175,4 +95,78 @@ pub async fn handle(sudoku_line: web::Path<String>) -> impl Responder {
     }
 
     format!("Invalid Sudoku")
+}
+
+// let sudoku_line = "...2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_str_to_board_mut_with_dots() {
+        let s = "...2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
+        let mut board = [[0; 9]; 9];
+        str_to_board_mut(s, &mut board);
+        assert_eq!(board, [
+            [0,0,0,2,0,0,0,6,3],
+            [3,0,0,0,0,5,4,0,1],
+            [0,0,1,0,0,3,9,8,0],
+            [0,0,0,0,0,0,0,9,0],
+            [0,0,0,5,3,8,0,0,0],
+            [0,3,0,0,0,0,0,0,0],
+            [0,2,6,3,0,0,5,0,0],
+            [5,0,3,7,0,0,0,0,8],
+            [4,7,0,0,0,1,0,0,0],
+        ])
+    }
+
+    #[test]
+    fn test_valid_solution() {
+        let mut grid = [        
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ];
+        let result = solve_sudoku(&mut grid);
+        assert_eq!(result, true);
+
+        let mut grid = [        
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            [4, 5, 6, 7, 8, 9, 1, 2, 3],
+            [7, 8, 9, 1, 2, 3, 4, 5, 6],
+            [2, 1, 4, 3, 6, 5, 8, 9, 7],
+            [3, 6, 5, 8, 9, 7, 2, 1, 4],
+            [8, 9, 7, 2, 1, 4, 3, 6, 5],
+            [5, 3, 1, 6, 4, 2, 9, 7, 8],
+            [6, 4, 2, 9, 7, 8, 5, 3, 1],
+            [9, 7, 8, 5, 3, 1, 6, 4, 2],
+        ];
+        let result = solve_sudoku(&mut grid);
+        assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_grid_solution() {
+        let s = "...2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
+        let mut board = [[0; 9]; 9];
+        str_to_board_mut(s, &mut board);
+        solve_sudoku(&mut board);
+        assert_eq!(board, [
+            [8, 5, 4, 2, 1, 9, 7, 6, 3], 
+            [3, 9, 7, 8, 6, 5, 4, 2, 1], 
+            [2, 6, 1, 4, 7, 3, 9, 8, 5], 
+            [7, 8, 5, 1, 2, 6, 3, 9, 4], 
+            [6, 4, 9, 5, 3, 8, 1, 7, 2], 
+            [1, 3, 2, 9, 4, 7, 8, 5, 6], 
+            [9, 2, 6, 3, 8, 4, 5, 1, 7], 
+            [5, 1, 3, 7, 9, 2, 6, 4, 8], 
+            [4, 7, 8, 6, 5, 1, 2, 3, 9]
+        ]);
+    }
 }
