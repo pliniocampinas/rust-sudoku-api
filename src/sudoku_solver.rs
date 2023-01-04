@@ -1,5 +1,4 @@
 use actix_web::{get, web, Responder};
-use sudoku::Sudoku;
 
 fn str_to_board_mut(s: &str, board: &mut [[u8; 9]; 9]) {
     let chars: Vec<char> = s
@@ -72,16 +71,25 @@ fn is_valid(grid: &[[u8; 9]; 9], row: usize, col: usize, k: u8) -> bool {
 // Sudokus can be created from &str's in both block or line formats or directly from bytes.
 // here, an example in line format
 // let sudoku_line = "...2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
-
 fn solve(sudoku_line: String) -> Option<String> {
     if sudoku_line.len() != 81 {
         return None;
     }
 
-    let sudoku_solver = Sudoku::from_str_line(sudoku_line.as_str()).unwrap();
+    let mut board = [[0; 9]; 9];
+    str_to_board_mut(sudoku_line.as_str(), &mut board);
+    let solved = solve_sudoku(&mut board);
 
-    if let Some(solution) = sudoku_solver.solve_unique() {
-        return Some(format!("{solution}"));
+    let mut solved_sudoku_line = String::new();
+
+    for line in board {
+        for cell in line {
+            solved_sudoku_line += &cell.to_string();
+        }
+    }
+
+    if solved {
+        return Some(format!("{solved_sudoku_line}"));
     }
 
     None
@@ -97,7 +105,6 @@ pub async fn handle(sudoku_line: web::Path<String>) -> impl Responder {
     format!("Invalid Sudoku")
 }
 
-// let sudoku_line = "...2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
 #[cfg(test)]
 mod tests {
     use super::*;
