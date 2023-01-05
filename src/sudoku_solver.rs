@@ -80,6 +80,10 @@ fn solve(sudoku_line: String) -> Option<String> {
     str_to_board_mut(sudoku_line.as_str(), &mut board);
     let solved = solve_sudoku(&mut board);
 
+    if !solved {
+        return None;
+    }
+
     let mut solved_sudoku_line = String::new();
 
     for line in board {
@@ -88,11 +92,7 @@ fn solve(sudoku_line: String) -> Option<String> {
         }
     }
 
-    if solved {
-        return Some(format!("{solved_sudoku_line}"));
-    }
-
-    None
+    return Some(format!("{solved_sudoku_line}"));
 }
 
 #[get("/solve/{sudoku_line}")]
