@@ -163,7 +163,8 @@ mod tests {
         let s = "...2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
         let mut board = [[0; 9]; 9];
         str_to_board_mut(s, &mut board);
-        solve_sudoku(&mut board);
+        let solved = solve_sudoku(&mut board);
+        assert_eq!(solved, true);
         assert_eq!(board, [
             [8, 5, 4, 2, 1, 9, 7, 6, 3], 
             [3, 9, 7, 8, 6, 5, 4, 2, 1], 
@@ -175,5 +176,14 @@ mod tests {
             [5, 1, 3, 7, 9, 2, 6, 4, 8], 
             [4, 7, 8, 6, 5, 1, 2, 3, 9]
         ]);
+    }
+
+    #[test]
+    fn test_invalid_solution() {
+        let s = "33.2...633....54.1..1..398........9....538....3........263..5..5.37....847...1...";
+        let mut board = [[0; 9]; 9];
+        str_to_board_mut(s, &mut board);
+        let solved = solve_sudoku(&mut board);
+        assert_eq!(solved, false);
     }
 }
